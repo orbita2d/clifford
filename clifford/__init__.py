@@ -44,13 +44,15 @@ def update_counts(x0: float, y0: float, x: np.ndarray, y: np.ndarray, arr: Array
 def test_closed(p: np.ndarray):
     x0 = 0.08
     y0 = 0.12
-    count = 100000
+    count = 400000
     x = np.zeros(count, dtype=float)
     y = np.zeros(count, dtype=float)
     build_clifford(x, y, x0, y0, p[0], p[1], p[2], p[3], count)
     arr = ArrayCounts(400, 0.0005)
     update_counts(x0, y0, x, y, arr)
-    if arr.count_array.max(initial=0) > count / 1000:
+    nonzero = np.count_nonzero(arr.count_array)
+    max_count = arr.count_array.max(initial=0)
+    if (nonzero < 20000) or (max_count > 400):
         return True
     else:
         return False
