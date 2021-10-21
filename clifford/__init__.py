@@ -13,7 +13,7 @@ def increment_clifford(x: float, y: float, a: float, b: float, c: float, d: floa
 
 
 @jit
-def build_clifford(x: np.ndarray, y:np.ndarray, x0: float, y0: float, a: float, b: float, c: float, d: float, count: int):
+def build_clifford(x: np.ndarray, y: np.ndarray, x0: float, y0: float, a: float, b: float, c: float, d: float, count: int):
     x[0], y[0] = increment_clifford(x0, y0, a, b, c, d)
     for i in range(1, count):
         x[i], y[i] = increment_clifford(x[i - 1], y[i - 1], a, b, c, d)

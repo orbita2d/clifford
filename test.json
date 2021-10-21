@@ -1,0 +1,23 @@
+{
+  "type": "clifford",
+  "name": "test",
+  "data":
+  {
+    "generation": {
+      "p0": [-2.85,  2.85,  2.00,  1.00],
+      "px": [ 0.12,  0.00,  0.10,  0.00],
+      "py": [ 0.00, -0.10,  0.00, -0.15]
+    },
+    "render": {
+      "type": "linear",
+      "data": {
+        "map": "magma",
+        "lut": 64,
+        "saturation_map": false,
+        "invert": false,
+        "alpha": 0.5,
+        "beta": 0.6
+      }
+    }
+  }
+}

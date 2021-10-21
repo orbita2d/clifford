@@ -9,46 +9,41 @@ import os.path
 import glob
 import multiprocessing
 from typing import Optional
+import json
+import sys
 
-mp_cores = 8
-
-size = 800
-
-blocks = 1
 block_size = int(5E6)
 
-padding = .04
-alpha = 0.5
-
-# Clifford attractor parameters
-#[-1.974, -1.873, 1.0, -1.0]
-
-p = np.array([1.6, -1.7, 1.5, -1.1], dtype=float)
-delta_x = np.array([0.12, 0., 0.0, 0.], dtype=float)
-delta_y = np.array([0., 0.01, 0., 0.1], dtype=float)
+padding = .02
 
 output_location = './frames/'
-frames = 240
-
-swap_luminance = False
-use_saturation_map = True
-beta = 0.15
-
-# dx, dy, dr, dtheta, dvector, linear
-colouring_schema = 'linear'
-cmap = plt.get_cmap('inferno', lut=16)
-
-alpha *= size / 6E3 * 1E6 / block_size
-beta *= size / 4E3 * 1E6 / block_size
 
 
-def update_image(arr: clifford.ArrayCounts, alpha: float, blocks_done: int) -> np.ndarray:
+class RenderSettings:
+    def __init__(self, data: dict):
+        self.type: str = data["type"]
+        self.saturation_map: bool = data["data"]["saturation_map"]
+        self.invert: bool = data["data"]["invert"]
+        self.data: dict = data["data"]
+
+
+class GeneratorSettings:
+    def __init__(self, data: dict):
+        self.p0: np.ndarray = np.array(data["p0"])
+        self.px: np.ndarray = np.array(data["px"])
+        self.py: np.ndarray = np.array(data["py"])
+
+
+def update_image(arr: clifford.ArrayCounts, blocks_done: int, settings: RenderSettings) -> np.ndarray:
+    alpha: float = settings.data["alpha"] * arr.size / 6E3 * 1E6 / block_size
+    beta: float = settings.data["beta"] * arr.size / 4E3 * 1E6 / block_size
+
     intensity = 1 - np.exp(- alpha / blocks_done * arr.count_array)
-    if use_saturation_map:
+    if settings.saturation_map:
         sat = 1 - np.exp(- beta / blocks_done * arr.count_array)
     else:
         sat = np.ones(intensity.shape)
-    if swap_luminance:
+    if settings.invert:
         value = 1 - intensity
     else:
         value = intensity
@@ -59,21 +54,21 @@ def update_image(arr: clifford.ArrayCounts, alpha: float, blocks_done: int) -> n
         np.nan_to_num(dx, copy=False, nan=0.0, posinf=None, neginf=None)
         np.nan_to_num(dy, copy=False, nan=0.0, posinf=None, neginf=None)
 
-    if colouring_schema == 'dx':
+    if settings.type == 'dx':
         # Renormalise between [0, 1]
         dx = (dx + 1) / 2
         hue = dx
         hsv = np.dstack((hue, sat, value))
         rgb = mpl.colors.hsv_to_rgb(hsv)
         return rgb
-    elif colouring_schema == 'dy':
+    elif settings.type == 'dy':
         # Renormalise between [0, 1]
         dy = (dy + 1) / 2
         hue = dy
         hsv = np.dstack((hue, sat, value))
         rgb = mpl.colors.hsv_to_rgb(hsv)
         return rgb
-    elif colouring_schema == 'dr':
+    elif settings.type == 'dr':
         # Renormalise between [0, 1]
         dx = (dx + 1) / 2
         dy = (dy + 1) / 2
@@ -81,14 +76,14 @@ def update_image(arr: clifford.ArrayCounts, alpha: float, blocks_done: int) -> n
         hsv = np.dstack((hue, sat, value))
         rgb = mpl.colors.hsv_to_rgb(hsv)
         return rgb
-    elif colouring_schema == 'dtheta':
+    elif settings.type == 'dtheta':
         # dtheta in [-pi, pi]
         dtheta = np.arctan2(dy, dx)
         hue = .5 + dtheta / (2 * np.pi)
         hsv = np.dstack((hue, sat, value))
         rgb = mpl.colors.hsv_to_rgb(hsv)
         return rgb
-    elif colouring_schema == 'dvector':
+    elif settings.type == 'dvector':
         # dtheta in [-pi, pi]
         dtheta = np.arctan2(dy, dx)
         # Renormalise between [0, 1]
@@ -100,33 +95,32 @@ def update_image(arr: clifford.ArrayCounts, alpha: float, blocks_done: int) -> n
         hsv = np.dstack((hue, sat, value))
         rgb = mpl.colors.hsv_to_rgb(hsv)
         return rgb
-    elif colouring_schema == 'linear':
+    elif settings.type == 'linear':
+        cmap = plt.get_cmap(settings.data["map"], lut=settings.data["lut"])
         norm = mpl.colors.Normalize(vmin=0, vmax=1)
         scalar_map = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
         rgb = scalar_map.to_rgba(value)
         return rgb
 
 
-def gifsicle_cleanup(input: str, output: str, delay: Optional[int], colours: int):
-    if delay is None:
-        os.system(f'gifsicle -i -l0 --colors {colours} -O3 -j8 {input} -o {output}')
-    else:
-        os.system(f'gifsicle -i -l0 --colors {colours} -O3 -d {delay} -j8 {input} -o {output}')
+def gifsicle_cleanup(input: str, output: str):
+    os.system(f'gifsicle -i -l0 -d2 -O3 -j8 {input} -o {output}')
 
 
 def make_gifsicle(images_path: str, output: str):
-    os.system(f'gifsicle -m {os.path.join(images_path, "clifford*.gif")} -o {output}')
-    gifsicle_cleanup(output, output, 3, 16)
+    os.system(f'gifsicle -m {os.path.join(images_path, "frame*.gif")} -o {output}')
 
 
 def make_gif(images_path: str, output: str, delay: float):
-    os.system(f'convert -antialias -delay {delay*100:.5f} -loop 0 {os.path.join(images_path, "clifford*.gif")} {output}')
+    os.system(f'convert -antialias -delay {delay*100:.5f} -loop 0 {os.path.join(images_path, "frame*.png")} {output}')
 
 
-def solve_frame(fi: int, n: int, p0: np.ndarray, px: np.ndarray, py: np.ndarray):
+def solve_frame(fi: int, blocks: int, n: int, generator: GeneratorSettings, settings: RenderSettings, size: int):
     counts = clifford.ArrayCounts(size, padding)
-    imdata = counts.count_array
     path_theta = 2 * np.pi * fi / n
+    p0 = generator.p0
+    px = generator.px
+    py = generator.py
     p_frame = p0 + np.cos(path_theta) * px + np.sin(path_theta) * py
     x0 = 0.08
     y0 = 0.12
@@ -142,7 +136,7 @@ def solve_frame(fi: int, n: int, p0: np.ndarray, px: np.ndarray, py: np.ndarray)
             if not clifford.test_closed(p_test):
                 found_solution = True
                 p_frame = p_test
-                print(f'{fi} Found solutuion: delta = {delta} : p {p_test}')
+                print(f'{fi} Found solutuion: delta = {delta:.3f}')
                 break
         if not found_solution:
             print(f'{fi} / {n} Failed')
@@ -150,32 +144,52 @@ def solve_frame(fi: int, n: int, p0: np.ndarray, px: np.ndarray, py: np.ndarray)
     t = time.perf_counter()
     for block in range(blocks):
         x0, y0 = clifford.get_frame(x0, y0, p_frame, block_size, counts)
-        imdata = update_image(counts, alpha, block + 1)
 
+    imdata = update_image(counts, blocks, settings)
     print(f'Done: {fi} / {n} frame in {time.perf_counter() - t:.3f}s')
-    save_path = os.path.join(output_location, f'clifford{fi:04d}.gif')
-    plt.imsave(save_path, imdata)
+    plt.imsave(os.path.join(output_location, f'frame{fi:04d}.gif'), imdata)
+    plt.imsave(os.path.join(output_location, f'frame{fi:04d}.png'), imdata)
 
 
 if __name__ == '__main__':
-    frame_list = glob.glob(os.path.join(output_location, 'clifford*.gif'))
+    if len(sys.argv) <= 5:
+        print('config blocks frames size cores')
+        exit(1)
+    config_path = sys.argv[1]
+    blocks = int(sys.argv[2])
+    frames = int(sys.argv[3])
+    size = int(sys.argv[4])
+    cores = int(sys.argv[5])
+    with open(config_path, 'r') as f:
+        json_data: dict = json.load(f)
+        name = json_data["name"]
+        if not json_data["type"] == "clifford":
+            exit(1)
+        generator_settings = GeneratorSettings(json_data["data"]["generation"])
+        render_settings = RenderSettings(json_data["data"]["render"])
+
+    frame_list = glob.glob(os.path.join(output_location, 'frame*.gif'))
+    for frame in frame_list:
+        os.remove(frame)
+    frame_list = glob.glob(os.path.join(output_location, 'frame*.png'))
     for frame in frame_list:
         os.remove(frame)
 
     def solve_frame_p(x):
-        solve_frame(x, frames, p, delta_x, delta_y)
+        solve_frame(x, blocks, frames, generator_settings, render_settings, size)
 
     t = time.perf_counter()
-    with multiprocessing.Pool(mp_cores) as pool:
+    with multiprocessing.Pool(cores) as pool:
         pool.imap(solve_frame_p, range(frames))
         pool.close()
         pool.join()
     time_used = time.perf_counter() - t
     print(f'Done: {frames} frames in {int(time_used/60):d} min {time_used % 60:.1f}s')
     print(f'Rendering gif')
-    make_gif(output_location, os.path.join(output_location, f'out_convert.gif'), 1/30)
-    gifsicle_cleanup(os.path.join(output_location, f'out_convert.gif'),
-                     os.path.join(output_location, f'out_convert.gif'),
-                     None, 16)
-    make_gifsicle(output_location, os.path.join(output_location, f'out_gifsicle.gif'))
+    convert_out = os.path.join(output_location, f'{name}.gif')
+    convert_out2 = os.path.join(output_location, f'{name}.jic.gif')
+    make_gif(output_location, convert_out2, 0.02)
+    make_gifsicle(output_location, convert_out)
+    gifsicle_cleanup(convert_out,
+                     convert_out)
     print(f'Finished')
