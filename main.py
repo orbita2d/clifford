@@ -168,6 +168,7 @@ if __name__ == '__main__':
         generator_settings = GeneratorSettings(json_data["data"]["generation"])
         render_settings = RenderSettings(json_data["data"]["render"])
 
+    print(f'Building {name}.gif')
     frame_list = glob.glob(os.path.join(output_location, 'frame*.gif'))
     for frame in frame_list:
         os.remove(frame)
