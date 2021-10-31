@@ -90,7 +90,7 @@ class HSVRenderer(RenderSettings):
     def __init__(self, data: dict):
         super(HSVRenderer, self).__init__(data)
         self.invert: bool = data["data"]["invert"]
-        # Can be "dx, dy, dr"
+        # Can be "dx, dy, dr, dx2, dy2, dr2"
         self.select: str = data["data"]["select"]
         self.alpha: float = data["data"]["alpha"]
         self.beta: float = data["data"]["beta"]
@@ -130,6 +130,26 @@ class HSVRenderer(RenderSettings):
             # dy in [-1, 1]
             # dr between [0, sqrt(2)]
             hue = np.sqrt(dx ** 2 + dy ** 2) / 1.41421356237
+            hsv = np.dstack((hue, sat, value))
+            rgb = mpl.colors.hsv_to_rgb(hsv)
+            return rgb
+        if self.select == 'dx2':
+            # dx in [-1, 1]
+            hue = dx**2
+            hsv = np.dstack((hue, sat, value))
+            rgb = mpl.colors.hsv_to_rgb(hsv)
+            return rgb
+        elif self.select == 'dy2':
+            # dy in [-1, 1]
+            hue = dy**2
+            hsv = np.dstack((hue, sat, value))
+            rgb = mpl.colors.hsv_to_rgb(hsv)
+            return rgb
+        elif self.select == 'dr2':
+            # dx in [-1, 1]
+            # dy in [-1, 1]
+            # dr between [0, sqrt(2)]
+            hue = (dx ** 2 + dy ** 2) / 2
             hsv = np.dstack((hue, sat, value))
             rgb = mpl.colors.hsv_to_rgb(hsv)
             return rgb
