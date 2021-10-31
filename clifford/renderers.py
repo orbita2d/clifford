@@ -38,21 +38,25 @@ class ColourSelectRenderer(RenderSettings):
     def __init__(self, data: dict):
         super(ColourSelectRenderer, self).__init__(data)
         self.invert: bool = data["data"]["invert"]
+        self.map = plt.get_cmap(self.data["map"], lut=self.data["lut"])
 
     def get_rgb_hue(self, arr: ArrayCounts, hue_select: np.ndarray):
         alpha: float = self.data["alpha"] * arr.size / 6E3 * 1E6 / arr.count()
-        beta: float = self.data["beta"] * arr.size / 4E3 * 1E6 / arr.count()
-        intensity = 1 - np.exp(- alpha * arr.count_array)
-
-        sat = 1 - np.exp(- beta * arr.count_array)
+        intensity: np.ndarray = 1 - np.exp(- alpha * arr.count_array)
 
         if self.invert:
-            value = 1 - intensity
+            bg = np.array([1, 1, 1, 1])
         else:
-            value = intensity
+            bg = np.array([0, 0, 0, 1])
 
-        hsv = np.dstack((hue_select, sat, value))
-        rgb = mpl.colors.hsv_to_rgb(hsv)
+        bg = np.reshape(bg, (1, 1, 4))
+        bg_array = np.repeat(np.repeat(bg, arr.size, axis=0), arr.size, axis=1)
+        intensity_array = np.repeat(np.expand_dims(intensity, axis=2), 4, axis=2)
+        norm = mpl.colors.Normalize(vmin=0, vmax=1)
+        scalar_map = mpl.cm.ScalarMappable(norm=norm, cmap=self.map)
+        colours: np.ndarray = scalar_map.to_rgba(hue_select)
+
+        rgb = bg_array * (1 - intensity_array) + colours * intensity_array
         return rgb
 
     def get_rgb(self, arr: ArrayCounts):

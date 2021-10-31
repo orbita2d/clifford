@@ -54,7 +54,7 @@ def test_closed(p: np.ndarray):
     update_counts(x0, y0, x, y, arr)
     nonzero = np.count_nonzero(arr.count_array)
     max_count = arr.count_array.max(initial=0)
-    if (nonzero < 20000) or (max_count > 400):
+    if (nonzero < 20000) or (max_count > 2000):
         return True
     else:
         return False

@@ -11,7 +11,20 @@ class GeneratorSettings:
         raise SyntaxError('GeneratorSettings is an abstract base class. get_p() should be overwritten')
 
 
+class GeneratorFrame(GeneratorSettings):
+    # Generate a single frame at p0
+    def __init__(self, data: dict):
+        super(GeneratorFrame, self).__init__(data)
+        self.p0: np.ndarray = np.array(self.data["p0"])
+
+    def get_p(self, i: int, n: int, delta: float) -> np.ndarray:
+        # Get the parameter p(i / n) for the generator
+        p0 = self.p0
+        return self.p0
+
+
 class GeneratorTwoVector(GeneratorSettings):
+    # Trace a circle in parameter space.
     def __init__(self, data: dict):
         super(GeneratorTwoVector, self).__init__(data)
         self.p0: np.ndarray = np.array(self.data["p0"])
@@ -30,5 +43,7 @@ class GeneratorTwoVector(GeneratorSettings):
 def get_generator(data: dict) -> GeneratorSettings:
     if data["type"] == "two-vector":
         return GeneratorTwoVector(data)
+    if data["type"] == "frame":
+        return GeneratorFrame(data)
     else:
         raise AttributeError(f'Do not support type: {["type"]}')

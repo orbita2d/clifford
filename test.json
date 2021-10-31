@@ -1,23 +1,21 @@
 {
   "type": "clifford",
-  "name": "passage",
+  "name": "test",
   "data":
   {
     "generation": {
-      "type": "two-vector",
+      "type": "frame",
       "data": {
-        "p0": [-2.85,  2.85,  2.00,  1.00],
-        "px": [ 0.12,  0.00,  0.10,  0.00],
-        "py": [ 0.00, -0.10,  0.00, -0.15]
+        "p0": [-2.85,  2.85,  2.00,  1.00]
       }
     },
     "render": {
-      "type": "linear",
+      "type": "dx",
       "data": {
-        "map": "magma",
+        "map": "rainbow",
         "lut": 64,
         "invert": false,
-        "alpha": 0.5,
+        "alpha": 0.5
       }
     }
   }
