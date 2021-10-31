@@ -40,6 +40,9 @@ class ColourSelectRenderer(RenderSettings):
         self.invert: bool = data["data"]["invert"]
         self.map = plt.get_cmap(self.data["map"], lut=self.data["lut"])
 
+        # Can be "dx, dy, dr"
+        self.select: str = data["data"]["select"]
+
     def get_rgb_hue(self, arr: ArrayCounts, hue_select: np.ndarray):
         alpha: float = self.data["alpha"] * arr.size / 6E3 * 1E6 / arr.count()
         intensity: np.ndarray = 1 - np.exp(- alpha * arr.count_array)
@@ -67,15 +70,15 @@ class ColourSelectRenderer(RenderSettings):
             np.nan_to_num(dx, copy=False, nan=0.0, posinf=None, neginf=None)
             np.nan_to_num(dy, copy=False, nan=0.0, posinf=None, neginf=None)
 
-        if self.type == 'dx':
+        if self.select == 'dx':
             # Renormalise between [0, 1]
             dx = (dx + 1) / 2
             return self.get_rgb_hue(arr, dx)
-        elif self.type == 'dy':
+        elif self.select == 'dy':
             # Renormalise between [0, 1]
             dy = (dy + 1) / 2
             return self.get_rgb_hue(arr, dy)
-        elif self.type == 'dr':
+        elif self.select == 'dr':
             # Renormalise between [0, 1]
             dx = (dx + 1) / 2
             dy = (dy + 1) / 2
@@ -83,14 +86,61 @@ class ColourSelectRenderer(RenderSettings):
             return self.get_rgb_hue(arr, dr)
 
 
+class HSVRenderer(RenderSettings):
+    def __init__(self, data: dict):
+        super(HSVRenderer, self).__init__(data)
+        self.invert: bool = data["data"]["invert"]
+        # Can be "dx, dy, dr"
+        self.select: str = data["data"]["select"]
+        self.alpha: float = data["data"]["alpha"]
+        self.beta: float = data["data"]["beta"]
+
+    def get_rgb(self, arr: ArrayCounts):
+        alpha: float = self.alpha * arr.size / 6E3 * 1E6 / arr.count()
+        beta: float = self.beta * arr.size / 6E3 * 1E6 / arr.count()
+        with np.errstate(divide='ignore', invalid='ignore'):
+            # Normalise between [-1, 1]
+            dx = arr.dx / arr.count_array / 2
+            dy = arr.dy / arr.count_array / 2
+            np.nan_to_num(dx, copy=False, nan=0.0, posinf=None, neginf=None)
+            np.nan_to_num(dy, copy=False, nan=0.0, posinf=None, neginf=None)
+
+        intensity = 1 - np.exp(- alpha * arr.count_array)
+        sat = 1 - np.exp(- beta * arr.count_array)
+
+        if self.invert:
+            value = 1 - intensity
+        else:
+            value = intensity
+
+        if self.select == 'dx':
+            # Renormalise between [0, 1]
+            hue = (dx + 1) / 2
+            hsv = np.dstack((hue, sat, value))
+            rgb = mpl.colors.hsv_to_rgb(hsv)
+            return rgb
+        elif self.select == 'dy':
+            # Renormalise between [0, 1]
+            hue = (dy + 1) / 2
+            hsv = np.dstack((hue, sat, value))
+            rgb = mpl.colors.hsv_to_rgb(hsv)
+            return rgb
+        elif self.select == 'dr':
+            # dx in [-1, 1]
+            # dy in [-1, 1]
+            # dr between [0, sqrt(2)]
+            hue = np.sqrt(dx ** 2 + dy ** 2) / 1.41421356237
+            hsv = np.dstack((hue, sat, value))
+            rgb = mpl.colors.hsv_to_rgb(hsv)
+            return rgb
+
+
 def get_renderer(data: dict) -> RenderSettings:
     if data["type"] == "linear":
         return LinearRenderer(data)
-    elif data["type"] == "dx":
+    elif data["type"] == "colour-select":
         return ColourSelectRenderer(data)
-    elif data["type"] == "dy":
-        return ColourSelectRenderer(data)
-    elif data["type"] == "dr":
-        return ColourSelectRenderer(data)
+    elif data["type"] == "hsv":
+        return HSVRenderer(data)
     else:
         raise AttributeError(f'Do not support renderer: {["type"]}')
