@@ -2,6 +2,7 @@ import numpy as np
 
 
 class GeneratorSettings:
+    """ ABC for generator object. Generators choose the path through parameter space that our animation takes."""
     def __init__(self, data: dict):
         self.type: str = data["type"]
         self.data: dict = data["data"]
@@ -12,6 +13,7 @@ class GeneratorSettings:
 
 
 class GeneratorFrame(GeneratorSettings):
+    """ Just return a single point in space. Useful for single frames."""
     # Generate a single frame at p0
     def __init__(self, data: dict):
         super(GeneratorFrame, self).__init__(data)
@@ -24,7 +26,7 @@ class GeneratorFrame(GeneratorSettings):
 
 
 class GeneratorTwoVector(GeneratorSettings):
-    # Trace a circle in parameter space.
+    """ Trace an ellipse in parameter space. p(t) = p0 + px cos t * py sin t"""
     def __init__(self, data: dict):
         super(GeneratorTwoVector, self).__init__(data)
         self.p0: np.ndarray = np.array(self.data["p0"])

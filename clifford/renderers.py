@@ -11,15 +11,18 @@ def get_intensity(k: float, arr: ArrayCounts) -> np.ndarray:
 
 
 class RenderSettings:
+    """ Abstract base class for renderer. Renderers take clifford attractor data as density field and turn to rgb. """
     def __init__(self, data: dict):
         self.type: str = data["type"]
         self.data: dict = data["data"]
 
-    def get_rgb(self, arr: ArrayCounts):
+    def get_rgb(self, arr: ArrayCounts) -> np.ndarray:
+        """ Return rgb from point density object."""
         raise SyntaxError('RenderSettings is an abstract base class. get_rgb() should be overwritten')
 
 
 class LinearRenderer(RenderSettings):
+    """ Linear renderer uses a matplotlib colourmap with (exponentially scaled) point density as input."""
     def __init__(self, data: dict):
         super(LinearRenderer, self).__init__(data)
         self.invert: bool = data["data"]["invert"]
@@ -39,6 +42,8 @@ class LinearRenderer(RenderSettings):
 
 
 class DualLinearRenderer(RenderSettings):
+    """ Dual linear renderer used two matplotlib colourmaps to colour the images. Some additional metric, like dx,
+    dy, dr is used to interpolate between the two colours."""
     def __init__(self, data: dict):
         super(DualLinearRenderer, self).__init__(data)
         self.invert: bool = data["data"]["invert"]
@@ -96,6 +101,8 @@ class DualLinearRenderer(RenderSettings):
 
 
 class ColourSelectRenderer(RenderSettings):
+    """ Use some metric (dx, dy, dr etc) to pick a colour from a mpl colourmap. Interpolate against the background
+    with density value. """
     def __init__(self, data: dict):
         super(ColourSelectRenderer, self).__init__(data)
         self.invert: bool = data["data"]["invert"]
@@ -148,6 +155,7 @@ class ColourSelectRenderer(RenderSettings):
 
 
 class HSVRenderer(RenderSettings):
+    """ Use some metric (dx, dy, dr etc) to pick hue. Use density to choose value and saturation."""
     def __init__(self, data: dict):
         super(HSVRenderer, self).__init__(data)
         self.invert: bool = data["data"]["invert"]
