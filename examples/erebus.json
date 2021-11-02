@@ -1,0 +1,27 @@
+{
+  "type": "clifford",
+  "name": "erebus",
+  "data":
+  {
+    "generation": {
+      "type": "two-vector",
+      "data": {
+        "p0": [ 2.00,  2.00,  1.15, -1.15],
+        "px": [ 0.08, -0.08,  0.00,  0.00],
+        "py": [ 0.00,  0.00,  0.10,  0.10]
+      }
+    },
+    "render": {
+      "type": "bilinear",
+      "data": {
+        "map1": "Blues",
+        "map2": "Reds",
+        "lut": 64,
+        "select": "dr",
+        "exponent": 0.6,
+        "invert": false,
+        "alpha": 0.3
+      }
+    }
+  }
+}

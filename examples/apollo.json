@@ -1,0 +1,24 @@
+{
+  "type": "clifford",
+  "name": "apollo",
+  "data":
+  {
+    "generation": {
+      "type": "two-vector",
+      "data": {
+        "p0": [ 1.86,  1.85,  1.00, -1.00],
+        "px": [ 0.09,  0.00,  0.00,  0.00],
+        "py": [ 0.00,  0.09,  0.00,  0.00]
+      }
+    },
+    "render": {
+      "type": "linear",
+      "data": {
+        "map": "BuPu",
+        "lut": 64,
+        "invert": false,
+        "alpha": 0.4
+      }
+    }
+  }
+}
