@@ -11,14 +11,15 @@ from typing import Tuple
 block_size = int(5E6)
 
 output_location = './frames/'
+debug = False
 
 
 def gifsicle_cleanup(input: str, output: str):
-    os.system(f'gifsicle -i -l0 -d2 -O3 -j8 {input} -o {output}')
+    os.system(f'gifsicle -i -l0 -d2 -O3 -j8 --colors 256 {input} -o {output}')
 
 
 def make_gifsicle(images_path: str, output: str):
-    os.system(f'gifsicle -m {os.path.join(images_path, "frame*.gif")} -o {output}')
+    os.system(f'gifsicle --colors 256 -m {os.path.join(images_path, "frame*.gif")} -o {output}')
 
 
 def make_mp4(images_path: str, output: str):
@@ -87,10 +88,14 @@ if __name__ == '__main__':
         solve_frame(x, blocks, frames, generator_settings, render_settings, size)
 
     t = time.perf_counter()
-    with multiprocessing.Pool(cores) as pool:
-        pool.imap(solve_frame_p, range(frames))
-        pool.close()
-        pool.join()
+    if debug:
+        for i in range(frames):
+            solve_frame_p(i)
+    else:
+        with multiprocessing.Pool(cores) as pool:
+            pool.imap(solve_frame_p, range(frames))
+            pool.close()
+            pool.join()
     time_used = time.perf_counter() - t
     print(f'Done: {frames} frames in {int(time_used/60):d} min {time_used % 60:.1f}s')
     print(f'Rendering gif')
