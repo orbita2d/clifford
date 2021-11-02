@@ -6,10 +6,9 @@ import glob
 import multiprocessing
 import json
 import sys
+from typing import Tuple
 
 block_size = int(5E6)
-
-padding = .02
 
 output_location = './frames/'
 
@@ -22,8 +21,14 @@ def make_gifsicle(images_path: str, output: str):
     os.system(f'gifsicle -m {os.path.join(images_path, "frame*.gif")} -o {output}')
 
 
-def solve_frame(fi: int, blocks: int, n: int, generator: clifford.GeneratorSettings, renderer: clifford.RenderSettings, size: int):
-    counts = clifford.ArrayCounts(size, padding)
+def make_mp4(images_path: str, output: str):
+    cmd = f'ffmpeg -y -loglevel 0 -r 50 -f image2 -i {os.path.join(images_path, "frame%04d.png")} -vcodec libx264 ' \
+          f'-crf 15  -pix_fmt yuv420p {output} '
+    os.system(cmd)
+
+
+def solve_frame(fi: int, blocks: int, n: int, generator: clifford.GeneratorSettings, renderer: clifford.RenderSettings, size: Tuple[int, int]):
+    counts = clifford.ArrayCounts(size, 0.05)
     x0 = 0.08
     y0 = 0.12
     p_frame = generator.get_p(fi, n, 0.0)
@@ -60,8 +65,8 @@ if __name__ == '__main__':
     config_path = sys.argv[1]
     blocks = int(sys.argv[2])
     frames = int(sys.argv[3])
-    size = int(sys.argv[4])
-    cores = int(sys.argv[5])
+    size = (int(sys.argv[5]), int(sys.argv[4]))
+    cores = int(sys.argv[6])
     with open(config_path, 'r') as f:
         json_data: dict = json.load(f)
         name = json_data["name"]
@@ -92,4 +97,5 @@ if __name__ == '__main__':
     convert_out = os.path.join(output_location, f'{name}.gif')
     make_gifsicle(output_location, convert_out)
     gifsicle_cleanup(convert_out, convert_out)
+    make_mp4(output_location, os.path.join(output_location, f'{name}.mp4'))
     print(f'Finished')

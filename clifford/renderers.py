@@ -6,6 +6,10 @@ import matplotlib.cm
 from .attractor import ArrayCounts
 
 
+def get_intensity(k: float, arr: ArrayCounts) -> np.ndarray:
+    return 1 - np.exp(- (k * arr.size()**2 / arr.count()) * arr.count_array)
+
+
 class RenderSettings:
     def __init__(self, data: dict):
         self.type: str = data["type"]
@@ -20,10 +24,10 @@ class LinearRenderer(RenderSettings):
         super(LinearRenderer, self).__init__(data)
         self.invert: bool = data["data"]["invert"]
         self.map = plt.get_cmap(self.data["map"], lut=self.data["lut"])
+        self.alpha = self.data["alpha"]
 
     def get_rgb(self, arr: ArrayCounts):
-        alpha: float = self.data["alpha"] * arr.size / 6E3 * 1E6 / arr.count()
-        intensity = 1 - np.exp(- alpha * arr.count_array)
+        intensity = get_intensity(self.alpha, arr)
         if self.invert:
             value = 1 - intensity
         else:
@@ -39,13 +43,13 @@ class ColourSelectRenderer(RenderSettings):
         super(ColourSelectRenderer, self).__init__(data)
         self.invert: bool = data["data"]["invert"]
         self.map = plt.get_cmap(self.data["map"], lut=self.data["lut"])
+        self.alpha = self.data["alpha"]
 
         # Can be "dx, dy, dr"
         self.select: str = data["data"]["select"]
 
     def get_rgb_hue(self, arr: ArrayCounts, hue_select: np.ndarray):
-        alpha: float = self.data["alpha"] * arr.size / 6E3 * 1E6 / arr.count()
-        intensity: np.ndarray = 1 - np.exp(- alpha * arr.count_array)
+        intensity = get_intensity(self.alpha, arr)
 
         if self.invert:
             bg = np.array([1, 1, 1, 1])
@@ -53,7 +57,7 @@ class ColourSelectRenderer(RenderSettings):
             bg = np.array([0, 0, 0, 1])
 
         bg = np.reshape(bg, (1, 1, 4))
-        bg_array = np.repeat(np.repeat(bg, arr.size, axis=0), arr.size, axis=1)
+        bg_array = np.repeat(np.repeat(bg, arr.size(), axis=0), arr.size(), axis=1)
         intensity_array = np.repeat(np.expand_dims(intensity, axis=2), 4, axis=2)
         norm = mpl.colors.Normalize(vmin=0, vmax=1)
         scalar_map = mpl.cm.ScalarMappable(norm=norm, cmap=self.map)
@@ -72,18 +76,18 @@ class ColourSelectRenderer(RenderSettings):
 
         if self.select == 'dx':
             # Renormalise between [0, 1]
-            dx = (dx + 1) / 2
-            return self.get_rgb_hue(arr, dx)
+            sel = (dx + 1) / 2
+            return self.get_rgb_hue(arr, sel)
         elif self.select == 'dy':
             # Renormalise between [0, 1]
-            dy = (dy + 1) / 2
-            return self.get_rgb_hue(arr, dy)
+            sel = (dy + 1) / 2
+            return self.get_rgb_hue(arr, sel)
         elif self.select == 'dr':
-            # Renormalise between [0, 1]
-            dx = (dx + 1) / 2
-            dy = (dy + 1) / 2
-            dr = np.sqrt(dx**2 + dy**2) / 1.41421356237
-            return self.get_rgb_hue(arr, dr)
+            # dx in [-1, 1]
+            # dy in [-1, 1]
+            # dr between [0, sqrt(2)]
+            sel = np.sqrt(dx**2 + dy**2) / 1.41421356237
+            return self.get_rgb_hue(arr, sel)
 
 
 class HSVRenderer(RenderSettings):
@@ -96,8 +100,6 @@ class HSVRenderer(RenderSettings):
         self.beta: float = data["data"]["beta"]
 
     def get_rgb(self, arr: ArrayCounts):
-        alpha: float = self.alpha * arr.size / 6E3 * 1E6 / arr.count()
-        beta: float = self.beta * arr.size / 6E3 * 1E6 / arr.count()
         with np.errstate(divide='ignore', invalid='ignore'):
             # Normalise between [-1, 1]
             dx = arr.dx / arr.count_array / 2
@@ -105,8 +107,8 @@ class HSVRenderer(RenderSettings):
             np.nan_to_num(dx, copy=False, nan=0.0, posinf=None, neginf=None)
             np.nan_to_num(dy, copy=False, nan=0.0, posinf=None, neginf=None)
 
-        intensity = 1 - np.exp(- alpha * arr.count_array)
-        sat = 1 - np.exp(- beta * arr.count_array)
+        intensity = get_intensity(self.alpha, arr)
+        sat = get_intensity(self.beta, arr)
 
         if self.invert:
             value = 1 - intensity
