@@ -38,6 +38,63 @@ class LinearRenderer(RenderSettings):
         return rgb
 
 
+class DualLinearRenderer(RenderSettings):
+    def __init__(self, data: dict):
+        super(DualLinearRenderer, self).__init__(data)
+        self.invert: bool = data["data"]["invert"]
+        self.map1 = plt.get_cmap(self.data["map1"], lut=self.data["lut"])
+        self.map2 = plt.get_cmap(self.data["map2"], lut=self.data["lut"])
+        self.alpha = self.data["alpha"]
+        # Can be "dx, dy, dr, dx2, dy2, dr2"
+        self.select: str = self.data["select"]
+        self.exponent = self.data["exponent"]
+
+    def get_rgb_select(self, arr: ArrayCounts, select: np.ndarray):
+        intensity = get_intensity(self.alpha, arr)
+        if self.invert:
+            value = 1 - intensity
+        else:
+            value = intensity
+        norm = mpl.colors.Normalize(vmin=0, vmax=1)
+        scalar_map1 = mpl.cm.ScalarMappable(norm=norm, cmap=self.map1)
+        rgb1 = scalar_map1.to_rgba(value)
+        scalar_map2 = mpl.cm.ScalarMappable(norm=norm, cmap=self.map2)
+        rgb2 = scalar_map2.to_rgba(value)
+        select_array = np.repeat(np.expand_dims(select, axis=2), 4, axis=2)
+        rgb = rgb2 * select_array + rgb1 * (1-select_array)
+        return rgb
+
+    def get_rgb(self, arr: ArrayCounts):
+        with np.errstate(divide='ignore', invalid='ignore'):
+            # Normalise between [-1, 1]
+            dx = arr.dx / arr.count_array / 2
+            dy = arr.dy / arr.count_array / 2
+            np.nan_to_num(dx, copy=False, nan=0.0, posinf=None, neginf=None)
+            np.nan_to_num(dy, copy=False, nan=0.0, posinf=None, neginf=None)
+
+        if self.select == 'dx':
+            sel = (dx + 1) / 2
+            return self.get_rgb_select(arr, np.power(sel, self.exponent))
+        elif self.select == 'dy':
+            sel = (dy + 1) / 2
+            return self.get_rgb_select(arr, np.power(sel, self.exponent))
+        elif self.select == 'dr':
+            # dx in [-1, 1]
+            # dy in [-1, 1]
+            # dr between [0, sqrt(2)]
+            sel = np.sqrt(dx ** 2 + dy ** 2) / 1.41421356237
+            return self.get_rgb_select(arr, np.power(sel, self.exponent))
+        if self.select == 'dx2':
+            sel = dx**2
+            return self.get_rgb_select(arr, np.power(sel, self.exponent))
+        elif self.select == 'dy2':
+            sel = dy**2
+            return self.get_rgb_select(arr, np.power(sel, self.exponent))
+        elif self.select == 'dr2':
+            sel = (dx ** 2 + dy ** 2) / 2
+            return self.get_rgb_select(arr, np.power(sel, self.exponent))
+
+
 class ColourSelectRenderer(RenderSettings):
     def __init__(self, data: dict):
         super(ColourSelectRenderer, self).__init__(data)
@@ -164,5 +221,7 @@ def get_renderer(data: dict) -> RenderSettings:
         return ColourSelectRenderer(data)
     elif data["type"] == "hsv":
         return HSVRenderer(data)
+    elif data["type"] == "bilinear":
+        return DualLinearRenderer(data)
     else:
         raise AttributeError(f'Do not support renderer: {["type"]}')
