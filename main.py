@@ -7,6 +7,10 @@ import multiprocessing
 import json
 import sys
 from typing import Tuple
+import imageio as iio
+from shutil import copyfile
+import pygifsicle
+
 
 block_size = int(5E6)
 
@@ -14,25 +18,25 @@ output_location = './frames/'
 debug = False
 
 
-def gifsicle_cleanup(input: str, output: str):
-    """ Make the gif have the right framerate, loop, etc"""
-    os.system(f'gifsicle -i -l0 -d2 -O3 -j8 --colors 256 {input} -o {output}')
-
-
 def make_gifsicle(images_path: str, output: str):
     """ Make a gif."""
-    os.system(f'gifsicle --colors 256 -m {os.path.join(images_path, "frame*.gif")} -o {output}')
+    frame_list = sorted(glob.glob(os.path.join(images_path, 'frame*.gif')))
+    with iio.get_writer(output, mode='I', fps=50) as writer:
+        for frame in frame_list:
+            writer.append_data(iio.imread(frame))
+    pygifsicle.optimize(output)
 
 
 def make_mp4(images_path: str, output: str):
     """ Make an mp4 from <images_path>/frame%0d.png frames. Save to <output>"""
-    cmd = f'ffmpeg -y -loglevel 0 -r 50 -f image2 -i {os.path.join(images_path, "frame%04d.png")} -vcodec libx264 ' \
-          f'-crf 15  -pix_fmt yuv420p {output} '
-    os.system(cmd)
+    frame_list = sorted(glob.glob(os.path.join(images_path, 'frame*.png')))
+    with iio.get_writer(output, fps=50) as writer:
+        for frame in frame_list:
+            writer.append_data(iio.imread(frame))
 
 
 def solve_frame(fi: int, blocks: int, n: int, generator: clifford.GeneratorSettings, renderer: clifford.RenderSettings,
-                size: Tuple[int, int]):
+                size: Tuple[int, int]) -> str:
     """ Take a frame count, number of iterations. Calculate clifford attractor point density, render as image,
     save frame. """
     counts = clifford.ArrayCounts(size, 0.05)
@@ -54,7 +58,7 @@ def solve_frame(fi: int, blocks: int, n: int, generator: clifford.GeneratorSetti
                 break
         if not found_solution:
             print(f'{fi} / {n} Failed')
-            return
+            return ''
     t = time.perf_counter()
     for block in range(blocks):
         x0, y0 = clifford.get_frame(x0, y0, p_frame, block_size, counts)
@@ -63,6 +67,7 @@ def solve_frame(fi: int, blocks: int, n: int, generator: clifford.GeneratorSetti
     print(f'Done: {fi} / {n} frame in {time.perf_counter() - t:.3f}s')
     plt.imsave(os.path.join(output_location, f'frame{fi:04d}.gif'), imdata)
     plt.imsave(os.path.join(output_location, f'frame{fi:04d}.png'), imdata)
+    return os.path.join(output_location, f'frame{fi:04d}.png')
 
 
 if __name__ == '__main__':
@@ -95,8 +100,8 @@ if __name__ == '__main__':
         os.remove(frame)
 
     # Helper function, so we can just pass a frame index. Makes the multiprocessing clearer.
-    def solve_frame_p(x):
-        solve_frame(x, blocks, frames, generator_settings, render_settings, size)
+    def solve_frame_p(x: int) -> str:
+        return solve_frame(x, blocks, frames, generator_settings, render_settings, size)
 
     t = time.perf_counter()
     if debug:
@@ -115,8 +120,8 @@ if __name__ == '__main__':
 
     # Save stuff
     print(f'Rendering gif')
+    copyfile(os.path.join(output_location, f'frame0000.png'), os.path.join(output_location, f'{name}.png'))
     convert_out = os.path.join(output_location, f'{name}.gif')
     make_gifsicle(output_location, convert_out)
-    gifsicle_cleanup(convert_out, convert_out)
     make_mp4(output_location, os.path.join(output_location, f'{name}.mp4'))
     print(f'Finished')
