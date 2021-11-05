@@ -72,10 +72,14 @@ class DualLinearRenderer(RenderSettings):
     def get_rgb(self, arr: ArrayCounts):
         with np.errstate(divide='ignore', invalid='ignore'):
             # Normalise between [-1, 1]
-            dx = arr.dx / arr.count_array / 2
-            dy = arr.dy / arr.count_array / 2
+            dx: np.ndarray = arr.dx / arr.count_array
+            dy: np.ndarray = arr.dy / arr.count_array
+            d2x: np.ndarray = arr.d2x / arr.count_array
+            d2y: np.ndarray = arr.d2y / arr.count_array
             np.nan_to_num(dx, copy=False, nan=0.0, posinf=None, neginf=None)
             np.nan_to_num(dy, copy=False, nan=0.0, posinf=None, neginf=None)
+            np.nan_to_num(d2x, copy=False, nan=0.0, posinf=None, neginf=None)
+            np.nan_to_num(d2y, copy=False, nan=0.0, posinf=None, neginf=None)
 
         if self.select == 'dx':
             sel = (dx + 1) / 2
@@ -89,7 +93,7 @@ class DualLinearRenderer(RenderSettings):
             # dr between [0, sqrt(2)]
             sel = np.sqrt(dx ** 2 + dy ** 2) / 1.41421356237
             return self.get_rgb_select(arr, np.power(sel, self.exponent))
-        if self.select == 'dx2':
+        elif self.select == 'dx2':
             sel = dx**2
             return self.get_rgb_select(arr, np.power(sel, self.exponent))
         elif self.select == 'dy2':
@@ -97,6 +101,15 @@ class DualLinearRenderer(RenderSettings):
             return self.get_rgb_select(arr, np.power(sel, self.exponent))
         elif self.select == 'dr2':
             sel = (dx ** 2 + dy ** 2) / 2
+            return self.get_rgb_select(arr, np.power(sel, self.exponent))
+        elif self.select == 'd2x':
+            sel = (d2x + 1) / 2
+            return self.get_rgb_select(arr, np.power(sel, self.exponent))
+        elif self.select == 'd2y':
+            sel = (d2x + 1) / 2
+            return self.get_rgb_select(arr, np.power(sel, self.exponent))
+        elif self.select == 'd2':
+            sel = ((d2y + d2x) + 2) / 4
             return self.get_rgb_select(arr, np.power(sel, self.exponent))
 
 

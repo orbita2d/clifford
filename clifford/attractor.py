@@ -31,6 +31,8 @@ class ArrayCounts:
         self.count_array: np.ndarray = np.zeros(size, dtype=int)
         self.dx: np.ndarray = np.zeros(size, dtype=float)
         self.dy: np.ndarray = np.zeros(size, dtype=float)
+        self.d2x: np.ndarray = np.zeros(size, dtype=float)
+        self.d2y: np.ndarray = np.zeros(size, dtype=float)
         self.padding: float = padding
 
     def count(self):
@@ -48,11 +50,13 @@ def update_counts(x0: float, y0: float, x: np.ndarray, y: np.ndarray, arr: Array
 
     x_px = np.array((x + 1) * scale + lpad, dtype=int)
     y_px = np.array((y + 1) * scale + tpad, dtype=int)
-    dx = np.diff(x, prepend=x0)
-    dy = np.diff(y, prepend=y0)
+    dx = np.diff(x, prepend=x0) / 2  # Dividing by two keeps dx in [-1, 1]
+    dy = np.diff(y, prepend=y0) / 2
     np.add.at(arr.count_array, (x_px, y_px), 1)
     np.add.at(arr.dx, (x_px, y_px), dx)
     np.add.at(arr.dy, (x_px, y_px), dy)
+    np.add.at(arr.d2x, (x_px, y_px), np.diff(dx, append=0) / 2)
+    np.add.at(arr.d2y, (x_px, y_px), np.diff(dy, append=0) / 2)
 
 
 def test_closed(p: np.ndarray):
