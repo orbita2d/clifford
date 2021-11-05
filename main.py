@@ -20,7 +20,7 @@ debug = False
 
 def make_gifsicle(images_path: str, output: str):
     """ Make a gif."""
-    frame_list = sorted(glob.glob(os.path.join(images_path, 'frame*.gif')))
+    frame_list = sorted(glob.glob(os.path.join(images_path, 'frame*.png')))
     with iio.get_writer(output, mode='I', fps=50) as writer:
         for frame in frame_list:
             writer.append_data(iio.imread(frame))
@@ -30,7 +30,7 @@ def make_gifsicle(images_path: str, output: str):
 def make_mp4(images_path: str, output: str):
     """ Make an mp4 from <images_path>/frame%0d.png frames. Save to <output>"""
     frame_list = sorted(glob.glob(os.path.join(images_path, 'frame*.png')))
-    with iio.get_writer(output, fps=50) as writer:
+    with iio.get_writer(output, fps=50, quality=6.5) as writer:
         for frame in frame_list:
             writer.append_data(iio.imread(frame))
 
@@ -65,7 +65,6 @@ def solve_frame(fi: int, blocks: int, n: int, generator: clifford.GeneratorSetti
 
     imdata = renderer.get_rgb(counts)
     print(f'Done: {fi} / {n} frame in {time.perf_counter() - t:.3f}s')
-    plt.imsave(os.path.join(output_location, f'frame{fi:04d}.gif'), imdata)
     plt.imsave(os.path.join(output_location, f'frame{fi:04d}.png'), imdata)
     return os.path.join(output_location, f'frame{fi:04d}.png')
 
@@ -89,7 +88,7 @@ if __name__ == '__main__':
         generator_settings = clifford.get_generator(json_data["data"]["generation"])
         render_settings = clifford.get_renderer(json_data["data"]["render"])
 
-    print(f'Building {name}.gif')
+    print(f'Building {name}')
 
     # Delete old frames.
     frame_list = glob.glob(os.path.join(output_location, 'frame*.gif'))
@@ -121,7 +120,8 @@ if __name__ == '__main__':
     # Save stuff
     print(f'Rendering gif')
     copyfile(os.path.join(output_location, f'frame0000.png'), os.path.join(output_location, f'{name}.png'))
-    convert_out = os.path.join(output_location, f'{name}.gif')
-    make_gifsicle(output_location, convert_out)
+    print(f'{name}.png')
+    make_gifsicle(output_location, os.path.join(output_location, f'{name}.gif'))
+    print(f'{name}.gif')
     make_mp4(output_location, os.path.join(output_location, f'{name}.mp4'))
-    print(f'Finished')
+    print(f'{name}.mp4')
