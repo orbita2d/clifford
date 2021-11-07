@@ -245,4 +245,4 @@ def get_renderer(data: dict) -> RenderSettings:
     elif data["type"] == "bilinear":
         return DualLinearRenderer(data)
     else:
-        raise AttributeError(f'Do not support renderer: {["type"]}')
+        raise AttributeError(f'Do not support renderer type: \"{data["type"]}\"')
