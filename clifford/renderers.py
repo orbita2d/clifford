@@ -212,7 +212,7 @@ class HSVRenderer(RenderSettings):
             hue = np.sqrt(dx ** 2 + dy ** 2) / 1.41421356237
             hsv = np.dstack((hue, sat, value))
             rgb = mpl.colors.hsv_to_rgb(hsv)
-            return rgb
+            return rg
         if self.select == 'dx2':
             # dx in [-1, 1]
             hue = dx**2
