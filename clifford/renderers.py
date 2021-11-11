@@ -111,6 +111,9 @@ class DualLinearRenderer(RenderSettings):
         elif self.select == 'd2':
             sel = ((d2y + d2x) + 2) / 4
             return self.get_rgb_select(arr, np.power(sel, self.exponent))
+        elif self.select == 'd2r':
+            sel = (dx * d2x + dy * d2y + 2) / 4
+            return self.get_rgb_select(arr, np.power(sel, self.exponent))
 
 
 class ColourSelectRenderer(RenderSettings):
@@ -212,7 +215,7 @@ class HSVRenderer(RenderSettings):
             hue = np.sqrt(dx ** 2 + dy ** 2) / 1.41421356237
             hsv = np.dstack((hue, sat, value))
             rgb = mpl.colors.hsv_to_rgb(hsv)
-            return rg
+            return rgb
         if self.select == 'dx2':
             # dx in [-1, 1]
             hue = dx**2
