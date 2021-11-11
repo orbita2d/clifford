@@ -26,7 +26,7 @@ class GeneratorFrame(GeneratorSettings):
 
 
 class GeneratorTwoVector(GeneratorSettings):
-    """ Trace an ellipse in parameter space. p(t) = p0 + px cos t * py sin t"""
+    """ Trace an ellipse in parameter space. p(t) = p0 + px cos t + py sin t"""
     def __init__(self, data: dict):
         super(GeneratorTwoVector, self).__init__(data)
         self.p0: np.ndarray = np.array(self.data["p0"])
