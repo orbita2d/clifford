@@ -18,7 +18,5 @@ if __name__ == "__main__":
 
     copyfile(os.path.join(output_location, f'frame0000.png'), os.path.join(output_location, f'{name}.png'))
     print(f'{name}.png')
-    clifford.make_gifsicle(output_location, os.path.join(output_location, f'{name}.gif'))
-    print(f'{name}.gif')
     clifford.make_mp4(output_location, os.path.join(output_location, f'{name}.mp4'))
     print(f'{name}.mp4')
