@@ -1,5 +1,7 @@
 # clifford
 Clifford attractors are pretty.
+I have some example results here:
+https://art.orbital.me.uk/
 
 ### Usage
 ```
