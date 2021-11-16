@@ -63,15 +63,14 @@ def test_closed(p: np.ndarray):
     """ Check if a particular parameter is a small orbit which will make a bad image."""
     x0 = 0.08
     y0 = 0.12
-    count = 400000
+    count = int(1E6)
     x = np.zeros(count, dtype=float)
     y = np.zeros(count, dtype=float)
     build_clifford(x, y, x0, y0, p[0], p[1], p[2], p[3], count)
-    arr = ArrayCounts((400, 400), 0.0005)
+    arr = ArrayCounts((320, 320), 0.0001)
     update_counts(x0, y0, x, y, arr)
-    nonzero = np.count_nonzero(arr.count_array)
     max_count = arr.count_array.max(initial=0)
-    if (nonzero < 20000) or (max_count > 1000):
+    if (np.percentile(arr.count_array, 60) < 5) or (max_count > 10000):
         return True
     else:
         return False
