@@ -70,7 +70,7 @@ def test_closed(p: np.ndarray):
     arr = ArrayCounts((320, 320), 0.0001)
     update_counts(x0, y0, x, y, arr)
     max_count = arr.count_array.max(initial=0)
-    if (np.percentile(arr.count_array, 60) < 5) or (max_count > 10000):
+    if (np.percentile(arr.count_array, 70) < 5) or (max_count > 10000):
         return True
     else:
         return False
