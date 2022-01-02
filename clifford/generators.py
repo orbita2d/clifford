@@ -21,7 +21,6 @@ class GeneratorFrame(GeneratorSettings):
 
     def get_p(self, i: int, n: int, delta: float) -> np.ndarray:
         # Get the parameter p(i / n) for the generator
-        p0 = self.p0
         return self.p0
 
 

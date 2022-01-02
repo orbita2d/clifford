@@ -41,6 +41,16 @@ class LinearRenderer(RenderSettings):
         return rgb
 
 
+def add_background(background, cmap: mpl.colors.Colormap, count):
+    # Make a scalar map
+    sm = mpl.cm.ScalarMappable(norm=mpl.colors.Normalize(vmin=0, vmax=1), cmap=cmap)
+    new = [background]
+    for i in range(1, count):
+        row = sm.to_rgba(i / count)
+        new.append(row)
+    return mpl.colors.ListedColormap(new)
+
+
 class DualLinearRenderer(RenderSettings):
     """ Dual linear renderer used two matplotlib colourmaps to colour the images. Some additional metric, like dx,
     dy, dr is used to interpolate between the two colours."""
@@ -53,6 +63,10 @@ class DualLinearRenderer(RenderSettings):
         # Can be "dx, dy, dr, dx2, dy2, dr2"
         self.select: str = self.data["select"]
         self.exponent = self.data["exponent"]
+        if "background" in self.data:
+            self.background = mpl.colors.to_rgba(self.data["background"])
+            self.map1 = add_background(self.background, self.map1, 24)
+            self.map2 = add_background(self.background, self.map2, 24)
 
     def get_rgb_select(self, arr: ArrayCounts, select: np.ndarray):
         intensity = get_intensity(self.alpha, arr)
