@@ -3,6 +3,10 @@
   "name": "erebus",
   "data":
   {
+    "attractor": {
+      "type": "clifford",
+      "data": {}
+    },
     "generation": {
       "type": "two-vector",
       "data": {
@@ -16,11 +20,12 @@
       "data": {
         "map1": "Blues",
         "map2": "Reds",
+        "background": "#fff7f3",
         "lut": 64,
         "select": "dr",
         "exponent": 0.6,
         "invert": false,
-        "alpha": 0.3
+        "alpha": 0.35
       }
     }
   }

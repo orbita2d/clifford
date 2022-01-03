@@ -16,7 +16,7 @@ output_location = './frames/'
 debug = False
 
 
-def solve_frame(fi: int, blocks: int, n: int, generator: clifford.GeneratorSettings, renderer: clifford.RenderSettings,
+def solve_frame(fi: int, blocks: int, n: int, generator: clifford.GeneratorSettings, renderer: clifford.RenderSettings, attractor: clifford.AttractorSystem,
                 size: Tuple[int, int]) -> str:
     """ Take a frame count, number of iterations. Calculate clifford attractor point density, render as image,
     save frame. """
@@ -24,7 +24,7 @@ def solve_frame(fi: int, blocks: int, n: int, generator: clifford.GeneratorSetti
     x0 = 0.08
     y0 = 0.12
     p_frame = generator.get_p(fi, n, 0.0)
-    if clifford.test_closed(p_frame):
+    if clifford.test_closed(p_frame, attractor_settings):
         print(f'{fi} / {n} - closed')
         max_i = 100
         max_delta = 0.02
@@ -32,7 +32,7 @@ def solve_frame(fi: int, blocks: int, n: int, generator: clifford.GeneratorSetti
         for i in range(1, max_i+1):
             delta = i * max_delta / max_i
             p_test = generator.get_p(fi, n, delta)
-            if not clifford.test_closed(p_test):
+            if not clifford.test_closed(p_test, attractor):
                 found_solution = True
                 p_frame = p_test
                 print(f'{fi} Found solutuion: delta = {delta:.3f}')
@@ -42,7 +42,7 @@ def solve_frame(fi: int, blocks: int, n: int, generator: clifford.GeneratorSetti
             return ''
     t = time.perf_counter()
     for block in range(blocks):
-        x0, y0 = clifford.get_frame(x0, y0, p_frame, block_size, counts)
+        x0, y0 = clifford.get_frame(x0, y0, p_frame, block_size, counts, attractor)
     imdata = renderer.get_rgb(counts)
     print(f'Done: {fi} / {n} frame in {time.perf_counter() - t:.3f}s')
     plt.imsave(os.path.join(output_location, f'frame{fi:04d}.png'), imdata)
@@ -67,6 +67,7 @@ if __name__ == '__main__':
             exit(1)
         generator_settings = clifford.get_generator(json_data["data"]["generation"])
         render_settings = clifford.get_renderer(json_data["data"]["render"])
+        attractor_settings = clifford.get_attractor(json_data["data"]["attractor"])
 
     print(f'Building {name}')
 
@@ -80,7 +81,7 @@ if __name__ == '__main__':
 
     # Helper function, so we can just pass a frame index. Makes the multiprocessing clearer.
     def solve_frame_p(x: int) -> str:
-        return solve_frame(x, blocks, frames, generator_settings, render_settings, size)
+        return solve_frame(x, blocks, frames, generator_settings, render_settings, attractor_settings, size)
 
     t = time.perf_counter()
     if debug:
